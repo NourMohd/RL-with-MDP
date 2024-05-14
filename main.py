@@ -19,31 +19,42 @@ def initialize_grid(r):
 
 def value_iteration(grid, discount_factor):
     V = np.zeros((GRID_SIZE, GRID_SIZE))
+    #terminal states
+    V[0, 0] = grid[0, 0]  
+    V[0, 2] = 10          
     policy = np.full((GRID_SIZE, GRID_SIZE), '', dtype=object)
-    for i in range(1000):
+    for _ in range(6):  # Run for a set number of iterations
         for i in range(GRID_SIZE):
             for j in range(GRID_SIZE):
-                # Skip updating the terminal state
-                if (i, j) == (0, 2):
+                # Skip updating the terminal states
+                if (i, j) == (0, 0) or (i, j) == (0, 2):
                     continue
                 max_value = float('-inf')
                 best_action = None
                 for action in transition_probs:
-                    new_value = 0
+                    new_value = grid[i, j]
                     for prob, di, dj in transition_probs[action]:
                         ni, nj = i + di, j + dj
+                        # print("action: ", action)
+                        # print("prob=", prob, "i=",i , "j=",j ,"ni=",ni, "nj=", nj)
                         if 0 <= ni < GRID_SIZE and 0 <= nj < GRID_SIZE:
-                            new_value += prob * (grid[ni, nj] + discount_factor * V[ni, nj])
-                        else:
-                            continue
+                            # print("tmam")
+                            new_value += (prob * V[ni, nj])
+                        # else:
+                        #     print("skipped")
+                    new_value = discount_factor * new_value
                     if new_value > max_value:
                         max_value = new_value
                         best_action = action
                 V[i, j] = max_value
+                # print(V)
                 policy[i, j] = best_action
+        
     return V, policy
 
 r_values = [100, 3, 0, -3]
+
+
 for r in r_values:
     grid = initialize_grid(r)
     V, policy = value_iteration(grid, DISCOUNT_FACTOR)
