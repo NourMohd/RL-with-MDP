@@ -20,42 +20,60 @@ class GridWorld:
         grid[0, 2] = 10
         return grid
 
-    def value_iteration(self, grid, threshold=1e-6):
+    def value_iteration(self, grid):
         # Vnew = R + y max[ for_each_direction{ SUM(prob*Vold[]) } ]
         V = np.zeros((self.GRID_SIZE, self.GRID_SIZE))
         V[0, 0] = grid[0, 0]  # terminal state
         V[0, 2] = 10  # terminal state
-        policy = np.full((self.GRID_SIZE, self.GRID_SIZE), "", dtype=object)
-
-        while True:
-            delta = 0
+        policy = np.full((self.GRID_SIZE, self.GRID_SIZE), '', dtype=object)
+        
+        for _ in range(8):  
             for i in range(self.GRID_SIZE):
                 for j in range(self.GRID_SIZE):
                     if (i, j) == (0, 0) or (i, j) == (0, 2):
                         continue
-                    max_value = float("-inf")
-                    best_action = None
-
+                    max_value = float('-inf')
+                    # best_action = None
+                    
                     for action in self.transition_probs:
                         value = 0
+                        # new_value = grid[i, j] # immediate reward
                         for prob, di, dj in self.transition_probs[action]:
+                            
                             ni, nj = i + di, j + dj
-                            if 0 <= ni < self.GRID_SIZE and 0 <= nj < self.GRID_SIZE:
-                                value += prob * V[ni, nj]
-                            else:
-                                value += prob * V[i, j]
+                            if 0 <= ni < self.GRID_SIZE and 0 <= nj < self.GRID_SIZE: # valid move
+                                value += (prob * V[ni, nj])
+                            elif ni < 0 or ni >= self.GRID_SIZE or nj < 0  or nj >= self.GRID_SIZE: #wall
+                                value += (prob * V[i, j])
                         new_value = grid[i, j] + self.DISCOUNT_FACTOR * value
                         if new_value > max_value:
                             max_value = new_value
-                            best_action = action
-                    delta = max(delta, abs(max_value - V[i, j]))
+                            # best_action = action
                     V[i, j] = max_value
-                    policy[i, j] = best_action
-
-            if delta < threshold:
-                break
-
+                    policy[i, j] = self.find_best_action(V, i, j)
+        
         return V, policy
+    
+    def find_best_action(self, V, i, j):
+        best_value = float('-inf')
+        best_action = ''
+
+        actions = {
+            'Down': (i + 1, j),
+            'Up': (i - 1, j),
+            'Left': (i, j - 1),
+            'Right': (i, j + 1)
+        }
+
+        for action, (ni, nj) in actions.items():
+            if 0 <= ni < self.GRID_SIZE and 0 <= nj < self.GRID_SIZE:
+                if V[ni, nj] > best_value:
+                    best_value = V[ni, nj]
+                    best_action = action
+
+        return best_action
+
+    
 
     def policy_evaluation(self, policy, grid):
         V = np.zeros((self.GRID_SIZE, self.GRID_SIZE))
@@ -90,23 +108,8 @@ class GridWorld:
                 if (i, j) == (0, 0) or (i, j) == (0, 2):
                     policy[i, j] = ""  # terminal state
                     continue
-                max_value = float("-inf")
-                best_action = None
-
-                for action in self.transition_probs:
-                    # new_value = grid[i, j]
-                    value = 0
-                    for prob, di, dj in self.transition_probs[action]:
-                        ni, nj = i + di, j + dj
-                        if 0 <= ni < self.GRID_SIZE and 0 <= nj < self.GRID_SIZE:
-                            value += prob * V[ni, nj]
-                        else:
-                            value += prob * V[i, j]
-                    new_value = grid[i, j] + self.DISCOUNT_FACTOR * value
-                    if new_value > max_value:
-                        max_value = new_value
-                        best_action = action
-                policy[i, j] = best_action
+                else:
+                    policy[i, j] = self.find_best_action(V, i, j)
         return policy
 
     def policy_iteration(self, grid):
@@ -147,5 +150,5 @@ class GridWorld:
 
 # Testing
 grid_world = GridWorld()
-# grid_world.run_value_iter_algo()
+grid_world.run_value_iter_algo()
 # grid_world.run_policy_iter_algo()
